@@ -124,5 +124,121 @@ namespace nss.Data
                 }
             }
         }
+
+        public static void CheckExercisesTable()
+        {
+            SqliteConnection db = DatabaseInterface.Connection;
+
+            try
+            {
+                List<Exercise> stuff = db.Query<Exercise>
+                    ("SELECT Id FROM Student").ToList();
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.Message.Contains("no such table"))
+                {
+                    db.Execute($@"CREATE TABLE Exercise (
+                        `Id`	integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        `Name`	varchar(80) NOT NULL,
+                        `Language` varchar(80)
+                    )");
+
+                    db.Execute($@"INSERT INTO Exercise
+                        VALUES (null,
+                              'ChickenMonkey',
+                              'JavaScript')
+                    ");
+
+                    db.Execute($@"INSERT INTO Exercise
+                        VALUES (null,
+                              'Cow',
+                              'JavaScript')
+                    ");
+
+                    db.Execute($@"INSERT INTO Exercise
+                        VALUES (null,
+                              'Turkey',
+                              'JavaScript')
+                    ");
+                }
+            }
+        }
+
+        public static void CheckStudentTable()
+        {
+            SqliteConnection db = DatabaseInterface.Connection;
+
+            try
+            {
+                List<Student> student = db.Query<Student>
+                    ("SELECT Id FROM Student").ToList();
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.Message.Contains("no such table"))
+                {
+                    db.Execute($@"CREATE TABLE Student (
+                        `Id`	integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        `FirstName`	varchar(80) NOT NULL,
+                        `LastName`	varchar(80) NOT NULL,
+                        `SlackHandle`	varchar(80) NOT NULL,
+                        `CohortId`	integer NOT NULL,
+                        FOREIGN KEY(`CohortId`) REFERENCES `Cohort`(`Id`)
+                    )");
+
+                    db.Execute($@"INSERT INTO Student
+                        VALUES (null,
+                              'Austin',
+                              'Gorman',
+                              '@Austin Gorman',
+                              '1')
+                    ");
+
+                    db.Execute($@"INSERT INTO Student
+                        VALUES (null,
+                              'Phill',
+                              'Patton',
+                              '@Phillip Patton',
+                              '1')
+                    ");
+
+                    db.Execute($@"INSERT INTO Student
+                        VALUES (null,
+                              'Jacob',
+                              'Henderson',
+                              '@Jacob Henderson',
+                              '5')
+                    ");
+
+                    db.Execute($@"INSERT INTO Student
+                        VALUES (null,
+                              'Brett',
+                              'Shearin',
+                              '@Brett Shearin',
+                              '6')
+                    ");
+                }
+            }
+        }
+
+        public static void CheckStudentExerciseTable()
+        {
+            SqliteConnection db = DatabaseInterface.Connection;
+
+            try
+            {
+                List<StudentExercise> studentExercise = db.Query<StudentExercise>
+                    ("SELECT Id FROM StudentExercise").ToList();
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.Message.Contains("no such table"))
+                {
+                    StudentExercise.Create(db);
+                    StudentExercise.Seed(db);
+                }
+            }
+        }
     }
 }

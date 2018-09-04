@@ -22,6 +22,9 @@ namespace nss
             SqliteConnection db = DatabaseInterface.Connection;
             DatabaseInterface.CheckCohortTable();
             DatabaseInterface.CheckInstructorsTable();
+            DatabaseInterface.CheckExercisesTable();
+            DatabaseInterface.CheckStudentTable();
+            DatabaseInterface.CheckStudentExerciseTable();
 
             List<Instructor> instructors = db.Query<Instructor>(@"SELECT * FROM Instructor").ToList();
             instructors.ForEach(i => Console.WriteLine($"{i.FirstName} {i.LastName}"));
@@ -227,6 +230,93 @@ namespace nss
                 5. List the students working on each exercise, include the
                    student's cohort and the instructor who assigned the exercise
              */
+
+            // 4. List the instructors and students assigned to each cohort
+            Dictionary<int, Cohort> cohortInstructorStudent = new Dictionary<int, Cohort>();
+
+            db.Query<Cohort, Student, Cohort>(@"
+                SELECT  c.Id, c.Name, s.Id, s.FirstName, s.LastName
+                FROM Cohort c
+                JOIN Student s ON s.CohortId = c.Id
+            ", (cohort, student) =>
+            {
+                if (!cohortInstructorStudent.ContainsKey(cohort.Id))
+                {
+                    cohortInstructorStudent[cohort.Id] = cohort;
+                }
+                cohortInstructorStudent[cohort.Id].Students.Add(student);
+                return cohort;
+            });
+
+            db.Query<Cohort, Instructor, Cohort>(@"
+                SELECT  c.Id, c.Name, i.Id, i.FirstName, i.LastName
+                FROM Cohort c
+                JOIN Instructor i ON i.CohortId = c.Id
+            ", (cohort, instructor) =>
+            {
+                if (!cohortInstructorStudent.ContainsKey(cohort.Id))
+                {
+                    cohortInstructorStudent[cohort.Id] = cohort;
+                }
+                cohortInstructorStudent[cohort.Id].Instructors.Add(instructor);
+                return cohort;
+            });
+
+            foreach (var item in cohortInstructorStudent)
+            {
+                StringBuilder output = new StringBuilder(100);
+                output.Append($"{item.Value.Name} ");
+                item.Value.Instructors.ForEach(stuff => output.Append($"{stuff.FirstName} {stuff.LastName} "));
+                item.Value.Students.ForEach(student => output.Append($"{student.FirstName} {student.LastName} "));
+                Console.WriteLine(output);
+            }
+
+            // 5. List the students working on each exercise, include the
+            //        student's cohort and the instructor who assigned the exercise
+
+            Dictionary<int, (Exercise, List<(Student, Instructor)>)> studentExerciseCohortInstructor = new Dictionary<int, (Exercise, List<(Student, Instructor)>)>();
+
+            db.Query<Exercise, Student, Instructor, Exercise>(@"
+                SELECT e.Id
+                    ,e.name
+                    ,e.Language
+                    ,s.Id
+                    ,s.FirstName
+                    ,s.LastName
+                    ,s.SlackHandle
+                    ,i.Id
+                    ,i.FirstName
+                    ,i.LastName
+                    ,i.SlackHandle
+                FROM Exercise e
+                JOIN StudentExercise se on se.ExerciseId = e.Id
+                JOIN Student s on s.Id = se.StudentId
+                JOIN Instructor i on i.Id = se.InstructorId;
+            ", (exercise, student, instructor) =>
+            {
+                if (!studentExerciseCohortInstructor.ContainsKey(exercise.Id))
+                {
+                    studentExerciseCohortInstructor[exercise.Id] = (exercise, new List<(Student, Instructor)>());
+                }
+                studentExerciseCohortInstructor[exercise.Id].Item2.Add((student, instructor));
+                return exercise;
+            });
+
+            /*
+                Display the student information using the StringBuilder class
+             */
+            foreach (KeyValuePair<int, (Exercise, List<(Student, Instructor)>)> exercise in studentExerciseCohortInstructor)
+            {
+                // Console.WriteLine($"{poop.Value.Item1.Name} has the following assignemnts:");
+                exercise.Value.Item2.ForEach(assignment =>
+                {
+                    Console.WriteLine($"{assignment.Item1.FirstName} {assignment.Item1.LastName} {exercise.Value.Item1.Name} {assignment.Item2.FirstName} {assignment.Item2.LastName}");
+                });
+            }
+
+
+
+
         }
     }
 }
