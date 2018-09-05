@@ -274,9 +274,9 @@ namespace nss
             // 5. List the students working on each exercise, include the
             //        student's cohort and the instructor who assigned the exercise
 
-            Dictionary<int, (Exercise, List<(Student, Instructor)>)> studentExerciseCohortInstructor = new Dictionary<int, (Exercise, List<(Student, Instructor)>)>();
+            Dictionary<int, (Exercise, List<(Student, Instructor, Cohort)>)> studentExerciseCohortInstructor = new Dictionary<int, (Exercise, List<(Student, Instructor, Cohort)>)>();
 
-            db.Query<Exercise, Student, Instructor, Exercise>(@"
+            db.Query<Exercise, Student, Instructor, Cohort, Exercise>(@"
                 SELECT e.Id
                     ,e.name
                     ,e.Language
@@ -288,29 +288,29 @@ namespace nss
                     ,i.FirstName
                     ,i.LastName
                     ,i.SlackHandle
+                    ,c.Id
+                    ,c.Name
                 FROM Exercise e
                 JOIN StudentExercise se on se.ExerciseId = e.Id
                 JOIN Student s on s.Id = se.StudentId
+				JOIN Cohort c ON c.Id = s.CohortId
                 JOIN Instructor i on i.Id = se.InstructorId;
-            ", (exercise, student, instructor) =>
+            ", (exercise, student, instructor, cohort) =>
             {
                 if (!studentExerciseCohortInstructor.ContainsKey(exercise.Id))
                 {
-                    studentExerciseCohortInstructor[exercise.Id] = (exercise, new List<(Student, Instructor)>());
+                    studentExerciseCohortInstructor[exercise.Id] = (exercise, new List<(Student, Instructor, Cohort)>());
                 }
-                studentExerciseCohortInstructor[exercise.Id].Item2.Add((student, instructor));
+                studentExerciseCohortInstructor[exercise.Id].Item2.Add((student, instructor, cohort));
                 return exercise;
             });
 
-            /*
-                Display the student information using the StringBuilder class
-             */
-            foreach (KeyValuePair<int, (Exercise, List<(Student, Instructor)>)> exercise in studentExerciseCohortInstructor)
+
+            foreach (KeyValuePair<int, (Exercise, List<(Student, Instructor, Cohort)>)> exercise in studentExerciseCohortInstructor)
             {
-                // Console.WriteLine($"{poop.Value.Item1.Name} has the following assignemnts:");
                 exercise.Value.Item2.ForEach(assignment =>
                 {
-                    Console.WriteLine($"{assignment.Item1.FirstName} {assignment.Item1.LastName} {exercise.Value.Item1.Name} {assignment.Item2.FirstName} {assignment.Item2.LastName}");
+                    Console.WriteLine($"{assignment.Item3.Name} {assignment.Item1.FirstName} {assignment.Item1.LastName} {exercise.Value.Item1.Name} {assignment.Item2.FirstName} {assignment.Item2.LastName}");
                 });
             }
 
